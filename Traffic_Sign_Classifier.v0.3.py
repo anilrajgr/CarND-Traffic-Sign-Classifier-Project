@@ -6,20 +6,20 @@ import os
 
 epochs = 10
 batchsize = 128
-mu = 0
-sigma = 0.01 / 255
-conv1depth = 6
-conv2depth = 16
-fc1size = 120
-fc2size = 84
-conv1keepprob = 0.5
-conv2keepprob = 0.5
-learningrate = 0.0001
+# mu = 0
+# sigma = 0.01 / 255
+# conv1depth = 6
+# conv2depth = 16
+# fc1size = 120
+# fc2size = 84
+# conv1keepprob = 0.5
+# conv2keepprob = 0.5
+# learningrate = 0.0001
 
 outputs2avg = 20
 
 try:
-    myopts, args = getopt.getopt(sys.argv[1:],"a:b:c:d:e:f:g:h:i:j:k:")
+    myopts, args = getopt.getopt(sys.argv[1:],"a:b:c:d:e:f:g:h:i:j:k:l:m:")
 except getopt.GetoptError as e:
     print (str(e))
     sys.exit(2)
@@ -38,14 +38,18 @@ for o, a in myopts:
     elif o == '-f':
         conv2depth=int(a)
     elif o == '-g':
-        fc1size=int(a)
+        conv3depth=int(a)
     elif o == '-h':
-        fc2size=int(a)
+        fc1size=int(a)
     elif o == '-i':
-        conv1keepprob=float(a)
+        fc2size=int(a)
     elif o == '-j':
-        conv2keepprob=float(a)
+        conv1keepprob=float(a)
     elif o == '-k':
+        conv2keepprob=float(a)
+    elif o == '-l':
+        conv3keepprob=float(a)
+    elif o == '-m':
         learningrate=float(a)
 
 # print("epochs: %s, batchsize: %s, mu: %s, sigma: %s, conv1depth: %s, conv2depth: %s, fc1size: %s, fc2size: %s, conv1keepprob: %s, conv2keepprob: %s, learningrate: %s\n" % (epochs, batchsize, mu, sigma, conv1depth, conv2depth, fc1size, fc2size, conv1keepprob, conv2keepprob, learningrate))
@@ -57,15 +61,17 @@ batchsize = 64
 # sigma = 0.001
 # conv1depth = 60
 # conv2depth = 100
+# conv3depth = 100
 # fc1size = 200
 # fc2size = 84
 # conv1keepprob = 1.0
 # conv2keepprob = 0.95
+# conv3keepprob = 0.95
 # learningrate = 0.001
 
 wfile = open("outdir/" + str(os.getpid()) + ".txt", "w")
-wfile.write("epochs: %s, batchsize: %s, mu: %s, sigma: %s, conv1depth: %s, conv2depth: %s, fc1size: %s, fc2size: %s, conv1keepprob: %s, conv2keepprob: %s, learningrate: %s\n" % (epochs, batchsize, mu, sigma, conv1depth, conv2depth, fc1size, fc2size, conv1keepprob, conv2keepprob, learningrate))
-print("epochs: %s, batchsize: %s, mu: %s, sigma: %s, conv1depth: %s, conv2depth: %s, fc1size: %s, fc2size: %s, conv1keepprob: %s, conv2keepprob: %s, learningrate: %s" % (epochs, batchsize, mu, sigma, conv1depth, conv2depth, fc1size, fc2size, conv1keepprob, conv2keepprob, learningrate))
+wfile.write("epochs: %s, batchsize: %s, mu: %s, sigma: %s, conv1depth: %s, conv2depth: %s, conv3depth: %s, fc1size: %s, fc2size: %s, conv1keepprob: %s, conv2keepprob: %s, conv3keepprob: %s, learningrate: %s\n" % (epochs, batchsize, mu, sigma, conv1depth, conv2depth, conv3depth, fc1size, fc2size, conv1keepprob, conv2keepprob, conv3keepprob, learningrate))
+print("epochs: %s, batchsize: %s, mu: %s, sigma: %s, conv1depth: %s, conv2depth: %s, conv3depth: %s, fc1size: %s, fc2size: %s, conv1keepprob: %s, conv2keepprob: %s, conv3keepprob: %s, learningrate: %s" % (epochs, batchsize, mu, sigma, conv1depth, conv2depth, conv3depth, fc1size, fc2size, conv1keepprob, conv2keepprob, conv3keepprob, learningrate))
 
 # TODO: Fill this in based on where you saved the training and testing data
 
@@ -156,7 +162,7 @@ BATCH_SIZE = batchsize
 ### Feel free to use as many code cells as needed.
 from tensorflow.contrib.layers import flatten
 
-def LeNet(x, keep_prob1, keep_prob2):    
+def LeNet(x, keep_prob1, keep_prob2, keep_prob3):    
     # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each layer
     # mu = 0
     # sigma = 0.01
@@ -183,13 +189,25 @@ def LeNet(x, keep_prob1, keep_prob2):
     LeNet.conv2 = tf.nn.dropout(LeNet.conv2, keep_prob2)
 
     # Pooling. Input = 10x10x60. Output = 5x5x60.
-    LeNet.conv2 = tf.nn.max_pool(LeNet.conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
+    # LeNet.conv2 = tf.nn.max_pool(LeNet.conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
+
+    # Layer 2: Convolutional. Output = 10x10x60.
+    conv3_W = tf.Variable(tf.truncated_normal(shape=(5, 5, conv2depth, conv3depth), mean = mu, stddev = sigma))
+    conv3_b = tf.Variable(tf.zeros(conv3depth))
+    LeNet.conv3   = tf.nn.conv2d(LeNet.conv2, conv3_W, strides=[1, 1, 1, 1], padding='VALID') + conv3_b
+    
+    # Activation.
+    LeNet.conv3 = tf.nn.relu(LeNet.conv3)
+    LeNet.conv3 = tf.nn.dropout(LeNet.conv3, keep_prob3)
+
+    # Pooling. Input = 10x10x60. Output = 5x5x60.
+    LeNet.conv3 = tf.nn.max_pool(LeNet.conv3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
     # Flatten. Input = 5x5x60. Output = 1500.
-    fc0   = flatten(LeNet.conv2)
+    fc0   = flatten(LeNet.conv3)
     
     # Layer 3: Fully Connected. Input = 1500. Output = fc1size.
-    fc1_W = tf.Variable(tf.truncated_normal(shape=(5*5*conv2depth, fc1size), mean = mu, stddev = sigma))
+    fc1_W = tf.Variable(tf.truncated_normal(shape=(3*3*conv3depth, fc1size), mean = mu, stddev = sigma))
     fc1_b = tf.Variable(tf.zeros(fc1size))
     fc1   = tf.matmul(fc0, fc1_W) + fc1_b
     
@@ -219,10 +237,11 @@ y = tf.placeholder(tf.int32, (None))
 one_hot_y = tf.one_hot(y, n_classes)
 keep_prob1 = tf.placeholder(tf.float32)
 keep_prob2 = tf.placeholder(tf.float32)
+keep_prob3 = tf.placeholder(tf.float32)
 
 rate = learningrate
 
-logits = LeNet(x, keep_prob1, keep_prob2)
+logits = LeNet(x, keep_prob1, keep_prob2, keep_prob3)
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
 loss_operation = tf.reduce_mean(cross_entropy)
 optimizer = tf.train.AdamOptimizer(learning_rate = rate)
@@ -241,7 +260,7 @@ def evaluate(X_data, y_data):
     sess = tf.get_default_session()
     for offset in range(0, num_examples, BATCH_SIZE):
         batch_x, batch_y = X_data[offset:offset+BATCH_SIZE], y_data[offset:offset+BATCH_SIZE]
-        accuracy = sess.run(accuracy_operation, feed_dict={x: batch_x, y: batch_y, keep_prob1: conv1keepprob, keep_prob2: conv2keepprob})
+        accuracy = sess.run(accuracy_operation, feed_dict={x: batch_x, y: batch_y, keep_prob1: conv1keepprob, keep_prob2: conv2keepprob, keep_prob3: conv3keepprob})
         total_accuracy += (accuracy * len(batch_x))
     return total_accuracy / num_examples
 
@@ -256,7 +275,7 @@ with tf.Session() as sess:
         for offset in range(0, num_examples, BATCH_SIZE):
             end = offset + BATCH_SIZE
             batch_x, batch_y = X_train[offset:end], y_train[offset:end]
-            sess.run(training_operation, feed_dict={x: batch_x, y: batch_y, keep_prob1: 1.0, keep_prob2: 1.0})
+            sess.run(training_operation, feed_dict={x: batch_x, y: batch_y, keep_prob1: 1.0, keep_prob2: 1.0, keep_prob3: 1.0})
             
         validation_accuracy = evaluate(X_valid, y_valid)
         lastNacc[1:] = lastNacc[:-1]

@@ -7,7 +7,7 @@ import os
 epochs = 10
 batchsize = 128
 mu = 0
-sigma = 0.01 / 255
+sigma = 0.01 
 conv1depth = 6
 conv2depth = 16
 fc1size = 120
@@ -16,7 +16,7 @@ conv1keepprob = 0.5
 conv2keepprob = 0.5
 learningrate = 0.0001
 
-outputs2avg = 20
+outputs2avg = 10
 
 try:
     myopts, args = getopt.getopt(sys.argv[1:],"a:b:c:d:e:f:g:h:i:j:k:")
@@ -53,15 +53,15 @@ for o, a in myopts:
 
 epochs = 100
 batchsize = 64
-# mu = 0.0
-# sigma = 0.001
-# conv1depth = 60
-# conv2depth = 100
-# fc1size = 200
-# fc2size = 84
-# conv1keepprob = 1.0
-# conv2keepprob = 0.95
-# learningrate = 0.001
+mu = 0.0
+sigma = 0.001
+conv1depth = 60
+conv2depth = 100
+fc1size = 200
+fc2size = 84
+conv1keepprob = 1.0
+conv2keepprob = 0.95
+learningrate = 0.001
 
 wfile = open("outdir/" + str(os.getpid()) + ".txt", "w")
 wfile.write("epochs: %s, batchsize: %s, mu: %s, sigma: %s, conv1depth: %s, conv2depth: %s, fc1size: %s, fc2size: %s, conv1keepprob: %s, conv2keepprob: %s, learningrate: %s\n" % (epochs, batchsize, mu, sigma, conv1depth, conv2depth, fc1size, fc2size, conv1keepprob, conv2keepprob, learningrate))
@@ -79,32 +79,21 @@ with open(validation_file, mode='rb') as f:
     valid = pickle.load(f)
 with open(testing_file, mode='rb') as f:
     test = pickle.load(f)
-    
-import numpy as np
+
 # Shuffle the data
 from sklearn.utils import shuffle
-import cv2
 
 X_train, y_train = shuffle(train['features'], train['labels'])
-X_valid, y_valid = valid['features'], valid['labels']
-X_test, y_test = test['features'], test['labels']
-
-def preprocess(data):
-  imgs = np.ndarray((data.shape[0], 32, 32, 1), dtype=np.uint8)
-  for i, img in enumerate(data):
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img = cv2.equalizeHist(img)
-    img = np.expand_dims(img, axis=2)
-    imgs[i] = img
-  return imgs
-
-X_train = preprocess(X_train)
-X_valid = preprocess(X_valid)
-X_test = preprocess(X_test)
-
+X_valid, y_valid = shuffle(valid['features'], valid['labels'])
+X_test, y_test = shuffle(test['features'], test['labels'])
+    
+# X_train, y_train = train['features'], train['labels']
+# X_valid, y_valid = valid['features'], valid['labels']
+# X_test, y_test = test['features'], test['labels']
 
 image_depth = X_train.shape[3]
 
+import numpy as np
 from sklearn import preprocessing
 
 X_train_flatten = X_train.reshape((len(X_train), 32*32*image_depth))
@@ -119,6 +108,22 @@ X_valid_flatten = scaler.transform(X_valid_flatten)
 X_valid = X_valid_flatten.reshape((len(X_valid), 32, 32, image_depth))
 X_test_flatten = scaler.transform(X_test_flatten)
 X_test = X_test_flatten.reshape((len(X_test), 32, 32, image_depth))
+
+"""
+def conv2gray(data):
+  imgs = np.ndarray((data.shape[0], 32, 32, 1), dtype=np.uint8)
+  for i, img in enumerate(data):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.equalizeHist(img)
+    img = np.expand_dims(img, axis=2)
+    imgs[i] = img
+   return imgs
+
+
+X_train = X_train / 255
+X_valid = X_valid / 255
+X_test = X_test / 255
+"""
 
 # TODO: Number of training examples
 n_train = len(train['features'])
@@ -162,7 +167,7 @@ def LeNet(x, keep_prob1, keep_prob2):
     # sigma = 0.01
     
     # Layer 1: Convolutional. Input = 32x32x1. Output = 28x28x6.
-    conv1_W = tf.Variable(tf.truncated_normal(shape=(5, 5, image_depth, conv1depth), mean = mu, stddev = sigma))
+    conv1_W = tf.Variable(tf.truncated_normal(shape=(5, 5, 3, conv1depth), mean = mu, stddev = sigma))
     conv1_b = tf.Variable(tf.zeros(conv1depth))
     LeNet.conv1   = tf.nn.conv2d(x, conv1_W, strides=[1, 1, 1, 1], padding='VALID') + conv1_b
     
@@ -214,7 +219,7 @@ def LeNet(x, keep_prob1, keep_prob2):
 
 ### Feel free to use as many code cells as needed.
 
-x = tf.placeholder(tf.float32, (None, 32, 32, image_depth))
+x = tf.placeholder(tf.float32, (None, 32, 32, 3))
 y = tf.placeholder(tf.int32, (None))
 one_hot_y = tf.one_hot(y, n_classes)
 keep_prob1 = tf.placeholder(tf.float32)
@@ -268,9 +273,10 @@ with tf.Session() as sess:
         print("{}: Validation Accuracy = {:.3f} ({:.3f}) ({:.3f})".format(i+1, validation_accuracy, lastNvalidation_accuracy, test_accuracy))
         ## -- Don't do this ----
         ## ---------------------
-        if validation_accuracy <= lastNvalidation_accuracy:
-          print("Breaking")
-          break
+        # if validation_accuracy <= lastNvalidation_accuracy:
+          # print("Breaking")
+          # break
+        # print()
 
     test_accuracy = evaluate(X_test, y_test)
     wfile.write("Test Accuracy = {:.3f}\n".format(test_accuracy))

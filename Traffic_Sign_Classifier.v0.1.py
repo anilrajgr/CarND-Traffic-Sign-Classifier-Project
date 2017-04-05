@@ -22,7 +22,7 @@ conv1akeepprob = 0.9
 conv2akeepprob = 0.9
 learningrate = 0.001
 
-outputs2avg = 5
+outputs2avg = 20
 
 try:
     myopts, args = getopt.getopt(sys.argv[1:],"a:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:q:")
@@ -89,12 +89,28 @@ with open(validation_file, mode='rb') as f:
 with open(testing_file, mode='rb') as f:
     test = pickle.load(f)
 
+import numpy as np
+
 # Shuffle the data
 from sklearn.utils import shuffle
+import cv2
     
+def preprocess(data):
+  imgs = np.ndarray((data.shape[0], 32, 32, 1), dtype=np.uint8)
+  for i, img in enumerate(data):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.equalizeHist(img)
+    img = np.expand_dims(img, axis=2)
+    imgs[i] = img
+  return imgs
+
 X_train, y_train = shuffle(train['features'], train['labels'])
 X_valid, y_valid = shuffle(valid['features'], valid['labels'])
 X_test, y_test = shuffle(test['features'], test['labels'])
+
+X_train = preprocess(X_train)
+X_valid = preprocess(X_valid)
+X_test = preprocess(X_test)
 
 
 """
@@ -119,7 +135,6 @@ X_test = X_test.reshape((len(X_test), 32, 32, 1))
 
 image_depth = X_train.shape[3]
 
-import numpy as np
 
 from sklearn import preprocessing
 
@@ -422,8 +437,11 @@ with tf.Session() as sess:
         lastNacc[0] = validation_accuracy
         lastNvalidation_accuracy = np.mean(lastNacc)
         # print("EPOCH {} ...".format(i+1))
-        wfile.write("{}: Validation Accuracy = {:.3f} ({:.3f})\n".format(i+1, validation_accuracy, lastNvalidation_accuracy))
-        print("{}: Validation Accuracy = {:.3f} ({:.3f})".format(i+1, validation_accuracy, lastNvalidation_accuracy))
+        test_accuracy = evaluate(X_test, y_test)
+        wfile.write("{}: Validation Accuracy = {:.3f} ({:.3f}) ({:.3f})\n".format(i+1, validation_accuracy, lastNvalidation_accuracy, test_accuracy))
+        print("{}: Validation Accuracy = {:.3f} ({:.3f}) ({:.3f})".format(i+1, validation_accuracy, lastNvalidation_accuracy, test_accuracy))
+        ## -- Don't do this ----
+        ## ---------------------
         if validation_accuracy <= lastNvalidation_accuracy:
           print("Breaking")
           break

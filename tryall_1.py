@@ -2,14 +2,13 @@
 
 import os
 import time
-from subprocess import Popen
+import subprocess
 from itertools import product
 from random import shuffle
 from random import randint
 from random import uniform
 
 import shlex
-from subprocess import call
 # print(shlex.split(cmd))
 
 all_epochs = {10, 15, 20, 50, 100, 500}
@@ -41,28 +40,39 @@ def busy_or_not():
   else:
     return 0
 
+def running_or_not():
+  proc = subprocess.Popen("nvidia-smi", stdout=subprocess.PIPE)
+  output = proc.stdout.read()
+  output = "".join(map(chr, output))
+  if output.find('No running processes found') == -1:
+    return 1
+  else:
+    return 0
+
 for x in combo:
   a = x[0]
   b = x[1]
   c = x[2]
   d = x[3]
-  e = randint(6, 20)
-  f = randint(16, 100)
-  g = randint(100, 200)
-  h = randint(84, 150)
+  e = (int(randint(6, 80) / 16)) * 16
+  f = (int(randint(16, 400) / 40)) * 40
+  g = (int(randint(100, 800) / 200)) * 200
+  h = (int(randint(84, 600) / 64)) * 64
   i = uniform(0.8, 1.0)
   j = uniform(0.8, 1.0)
-  k = randint(3, 10)
-  l = randint(8, 50)
-  m = randint(50, 100)
-  n = randint(42, 75)
+  k = (int(randint(3, 10) / 2)) * 2
+  l = (int(randint(8, 50) / 5)) * 5
+  m = (int(randint(50, 100) / 25)) * 25
+  n = (int(randint(42, 75) / 8)) * 8
   o = uniform(0.8, 1.0)
   p = uniform(0.8, 1.0)
   q = x[4]
-  while(busy_or_not()):
-    time.sleep(10)
+  while(running_or_not()):
+    time.sleep(1)
+    print('-')
   cmd = "./Traffic_Sign_Classifier.v0.1.py -a %s -b %s -c %s -d %s -e %s -f %s -g %s -h %s -i %s -j %s -k %s -l %s -m %s -n %s -o %s -p %s -q %s" % (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
-  # proc = Popen(cmd, shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)
-  call(shlex.split(cmd), timeout=3600)
-  time.sleep(5)
+  print(cmd)
+  # proc = subprocess.Popen(cmd, shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)
+  subprocess.call(shlex.split(cmd), timeout=3600)
+  time.sleep(20)
 
