@@ -4,17 +4,17 @@ import sys, getopt
 import pickle
 import os
 
-epochs = 10
+epochs = 1
 batchsize = 128
-# mu = 0
-# sigma = 0.01 / 255
-# conv1depth = 6
-# conv2depth = 16
-# fc1size = 120
-# fc2size = 84
-# conv1keepprob = 0.5
-# conv2keepprob = 0.5
-# learningrate = 0.0001
+mu = 0
+sigma = 0.01 / 255
+conv1depth = 6
+conv2depth = 16
+fc1size = 120
+fc2size = 84
+conv1keepprob = 0.5
+conv2keepprob = 0.5
+learningrate = 0.0001
 
 outputs2avg = 20
 
@@ -55,19 +55,19 @@ for o, a in myopts:
 # print("epochs: %s, batchsize: %s, mu: %s, sigma: %s, conv1depth: %s, conv2depth: %s, fc1size: %s, fc2size: %s, conv1keepprob: %s, conv2keepprob: %s, learningrate: %s\n" % (epochs, batchsize, mu, sigma, conv1depth, conv2depth, fc1size, fc2size, conv1keepprob, conv2keepprob, learningrate))
 # exit()
 
-epochs = 100
+epochs = 1
 batchsize = 64
-# mu = 0.0
-# sigma = 0.001
-# conv1depth = 60
-# conv2depth = 100
-# conv3depth = 100
-# fc1size = 200
-# fc2size = 84
-# conv1keepprob = 1.0
-# conv2keepprob = 0.95
-# conv3keepprob = 0.95
-# learningrate = 0.001
+mu = 0.0
+sigma = 0.001
+conv1depth = 60
+conv2depth = 100
+conv3depth = 100
+fc1size = 200
+fc2size = 84
+conv1keepprob = 1.0
+conv2keepprob = 0.95
+conv3keepprob = 0.95
+learningrate = 0.001
 
 wfile = open("outdir/" + str(os.getpid()) + ".txt", "w")
 wfile.write("epochs: %s, batchsize: %s, mu: %s, sigma: %s, conv1depth: %s, conv2depth: %s, conv3depth: %s, fc1size: %s, fc2size: %s, conv1keepprob: %s, conv2keepprob: %s, conv3keepprob: %s, learningrate: %s\n" % (epochs, batchsize, mu, sigma, conv1depth, conv2depth, conv3depth, fc1size, fc2size, conv1keepprob, conv2keepprob, conv3keepprob, learningrate))
@@ -177,12 +177,12 @@ def LeNet(x, keep_prob1, keep_prob2, keep_prob3):
     LeNet.conv1 = tf.nn.dropout(LeNet.conv1, keep_prob1)
 
     # Pooling. Input = 28x28x6. Output = 14x14x6.
-    LeNet.conv1 = tf.nn.max_pool(LeNet.conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
+    LeNet.pool1 = tf.nn.max_pool(LeNet.conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
     # Layer 2: Convolutional. Output = 10x10x60.
     conv2_W = tf.Variable(tf.truncated_normal(shape=(5, 5, conv1depth, conv2depth), mean = mu, stddev = sigma))
     conv2_b = tf.Variable(tf.zeros(conv2depth))
-    LeNet.conv2   = tf.nn.conv2d(LeNet.conv1, conv2_W, strides=[1, 1, 1, 1], padding='VALID') + conv2_b
+    LeNet.conv2   = tf.nn.conv2d(LeNet.pool1, conv2_W, strides=[1, 1, 1, 1], padding='VALID') + conv2_b
     
     # Activation.
     LeNet.conv2 = tf.nn.relu(LeNet.conv2)
@@ -201,10 +201,10 @@ def LeNet(x, keep_prob1, keep_prob2, keep_prob3):
     LeNet.conv3 = tf.nn.dropout(LeNet.conv3, keep_prob3)
 
     # Pooling. Input = 10x10x60. Output = 5x5x60.
-    LeNet.conv3 = tf.nn.max_pool(LeNet.conv3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
+    LeNet.pool3 = tf.nn.max_pool(LeNet.conv3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
 
     # Flatten. Input = 5x5x60. Output = 1500.
-    fc0   = flatten(LeNet.conv3)
+    fc0   = flatten(LeNet.pool3)
     
     # Layer 3: Fully Connected. Input = 1500. Output = fc1size.
     fc1_W = tf.Variable(tf.truncated_normal(shape=(3*3*conv3depth, fc1size), mean = mu, stddev = sigma))
